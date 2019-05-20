@@ -2,10 +2,12 @@ import os
 import sys
 from xml.etree.ElementTree import parse, Element, tostring
 
+print(sys.getdefaultencoding())
+
 BASEPATH = os.path.abspath(os.path.dirname(__file__))
 
 EVENTS_FILENAME = 'events.xml'
-OUTPUT_FILENAME = 'postevents.xml'
+OUTPUT_FILENAME = 'events.xml'
 
 TEAM_NECESSARY_INFO = [
     'id', 
@@ -16,9 +18,9 @@ TEAM_NECESSARY_INFO = [
 ]
 
 FINALIZED_NECESSARY_INFO = {
-    'last-gold' : 1,
-    'last-silver' : 1,
-    'last-bronze' : 1,
+    'last-gold' : 13,
+    'last-silver' : 39,
+    'last-bronze' : 78,
     'timestamp' : 0, 
 }
 
@@ -73,6 +75,7 @@ def del_teams_with_missing_info(doc):
 def append_finalized(doc):
     finalized_node = doc.find('finalized')
     if finalized_node is None:   
+    	print('No <finalized>')
         finalized_node = Element('finalized')
     for key, value in FINALIZED_NECESSARY_INFO.items():
         key_node = finalized_node.find(key)
@@ -84,7 +87,33 @@ def append_finalized(doc):
         doc.getroot().append(finalized_node) 
         
 
+def find_logo_id(doc):
+    dict_logo_id = {}
+    team_nodes = doc.findall('team')
+    for team_node in team_nodes:
+    	team_id = int(team_node.find('id').text)
+    	university = team_node.find('university')
+    	if university is None:
+    	    print(tostring(team_node), ' miss university')
+    	    continue
+    	university = university.text
+	if dict_logo_id.has_key(university):
+	    pass
+	else:
+	    dict_logo_id[university] = team_id
+    LOGO_DIR = os.path.join(BASEPATH, 'images', 'logo')
+    for key, value in dict_logo_id.items(): 
+	logo_file = os.path.join(LOGO_DIR, key + '.png')		
+	if os.path.isfile(logo_file):
+	    new_name = os.path.join(LOGO_DIR, str(value) + '.png')
+	    os.rename(logo_file, new_name)
+	else:
+	    print value, 
+	    print(key)
+
+
 def main():
+    print('BASEPATH = {}'.format(BASEPATH))
     global EVENTS_FILENAME, OUTPUT_FILENAME
     EVENTS_FILENAME = os.path.join(BASEPATH, EVENTS_FILENAME)
     OUTPUT_FILENAME = os.path.join(BASEPATH, OUTPUT_FILENAME)
@@ -95,7 +124,7 @@ def main():
     problem_index_revise(doc)
     del_teams_with_missing_info(doc)
     append_finalized(doc)
-
+    find_logo_id(doc)
     doc.write(OUTPUT_FILENAME, encoding='utf-8', xml_declaration=False)
 
     print('Done.')
